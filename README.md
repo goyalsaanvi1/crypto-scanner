@@ -48,10 +48,13 @@ not modifying existing detection logic.
 
 ## Detected patterns
 
-| Rule             | Description                                                            |
-|-------------------|-------------------------------------------------------------------------|
-| `HARDCODED_KEY`   | A `String`/`byte[]` field named like a secret (KEY, SECRET, PASSWORD, TOKEN) assigned directly to a literal |
-| `ECB_MODE`        | `Cipher.getInstance(...)` called with a transformation string containing ECB |
+| Rule               | Description                                                            |
+|--------------------|-------------------------------------------------------------------------|
+| `HARDCODED_KEY`    | A `String`/`byte[]` field named like a secret (KEY, SECRET, PASSWORD, TOKEN) assigned directly to a literal |
+| `ECB_MODE`         | `Cipher.getInstance(...)` called with a transformation string containing ECB |
+| `STATIC_IV`        | A hardcoded IV/nonce byte array literal passed into a `GCMParameterSpec`/`IvParameterSpec` |
+| `WEAK_CIPHER`      | `Cipher.getInstance(...)` using a weak/deprecated algorithm (DES, DESede, RC4, Blowfish) |
+| `INSECURE_RANDOM`  | `java.util.Random` used to fill a byte array via `nextBytes(...)` instead of `SecureRandom` |
 
 ## Running tests
 

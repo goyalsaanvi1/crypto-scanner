@@ -4,9 +4,18 @@ import click
 
 from scanner.detectors.ecb_mode import EcbModeDetector
 from scanner.detectors.hardcoded_keys import HardcodedKeyDetector
+from scanner.detectors.insecure_random import InsecureRandomDetector
+from scanner.detectors.static_iv import StaticIvDetector
+from scanner.detectors.weak_cipher import WeakCipherDetector
 from scanner.report import print_findings
 
-DETECTORS = [HardcodedKeyDetector(), EcbModeDetector()]
+DETECTORS = [
+    HardcodedKeyDetector(),
+    EcbModeDetector(),
+    StaticIvDetector(),
+    WeakCipherDetector(),
+    InsecureRandomDetector(),
+]
 
 
 def find_java_files(target: Path) -> list[Path]:
