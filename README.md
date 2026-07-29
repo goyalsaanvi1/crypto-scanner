@@ -37,6 +37,17 @@ Each finding is printed as:
 <file>:<line> [<rule_id>] <severity> - <message>
 ```
 
+By default, files with no findings are silent. Pass `--verbose` to print
+`<file>: No findings` for those too:
+
+```bash
+python -m scanner.cli --verbose samples/safe/
+```
+
+The CLI exits with code `0` if no findings were produced across all
+scanned files, or `1` if any were found — useful for wiring into CI as a
+pass/fail gate.
+
 ## Architecture
 
 Each vulnerability check is its own `Detector` subclass in

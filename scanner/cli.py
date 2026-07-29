@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import click
@@ -34,14 +35,28 @@ def find_java_files(target: Path) -> list[Path]:
 
 @click.command()
 @click.argument("path", type=click.Path(exists=True, path_type=Path))
-def main(path: Path) -> None:
-    """Scan .java files under PATH for cryptographic misuse patterns."""
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Print 'No findings' for scanned files with zero findings.",
+)
+def main(path: Path, verbose: bool) -> None:
+    """Scan .java files under PATH for cryptographic misuse patterns.
+
+    Exits 0 if no findings were produced, 1 if any findings were found.
+    """
+    any_findings = False
     for java_file in find_java_files(path):
         content = java_file.read_text()
         findings = []
         for detector in DETECTORS:
             findings.extend(detector.scan(content))
-        print_findings(java_file, findings)
+        if findings:
+            any_findings = True
+        print_findings(java_file, findings, verbose=verbose)
+
+    sys.exit(1 if any_findings else 0)
 
 
 if __name__ == "__main__":
