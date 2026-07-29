@@ -53,8 +53,9 @@ not modifying existing detection logic.
 | `HARDCODED_KEY`    | A `String`/`byte[]` field named like a secret (KEY, SECRET, PASSWORD, TOKEN) assigned directly to a literal |
 | `ECB_MODE`         | `Cipher.getInstance(...)` called with a transformation string containing ECB |
 | `STATIC_IV`        | A hardcoded IV/nonce byte array literal passed into a `GCMParameterSpec`/`IvParameterSpec` |
-| `WEAK_CIPHER`      | `Cipher.getInstance(...)` using a weak/deprecated algorithm (DES, DESede, RC4, Blowfish) |
-| `INSECURE_RANDOM`  | `java.util.Random` used to fill a byte array via `nextBytes(...)` instead of `SecureRandom` |
+| `WEAK_CIPHER`      | `Cipher.getInstance(...)` using a weak/deprecated algorithm — DES, DESede, or RC4 (HIGH), or Blowfish (MEDIUM) |
+| `WEAK_HASH`        | `MessageDigest.getInstance(...)` using MD5/SHA-1 — HIGH if nearby naming suggests password/credential use, LOW otherwise (e.g. checksums) |
+| `INSECURE_RANDOM`  | `java.util.Random` used for security-sensitive purposes — suggestive naming, or its `nextBytes`/`nextInt`/`nextLong` output feeding a key/IV/nonce/token/salt — instead of `SecureRandom` |
 
 ## Running tests
 

@@ -9,16 +9,31 @@ def _scan(java_source: str):
     return WeakCipherDetector().scan(java_source)
 
 
-def test_flags_weak_cipher_sample():
-    content = (SAMPLES_DIR / "vulnerable" / "WeakCipherExample.java").read_text()
+def test_flags_des_as_high():
+    content = (SAMPLES_DIR / "vulnerable" / "DesExample.java").read_text()
     findings = _scan(content)
 
-    assert len(findings) == 4
-    algorithms_flagged = [f.line_number for f in findings]
-    assert algorithms_flagged == sorted(algorithms_flagged)
-    for finding in findings:
-        assert finding.rule_id == "WEAK_CIPHER"
-        assert finding.severity == "HIGH"
+    assert len(findings) == 1
+    assert findings[0].rule_id == "WEAK_CIPHER"
+    assert findings[0].severity == "HIGH"
+
+
+def test_flags_rc4_as_high_and_ignores_comment_mention():
+    content = (SAMPLES_DIR / "vulnerable" / "Rc4Example.java").read_text()
+    findings = _scan(content)
+
+    assert len(findings) == 1
+    assert findings[0].rule_id == "WEAK_CIPHER"
+    assert findings[0].severity == "HIGH"
+
+
+def test_flags_blowfish_as_medium():
+    content = (SAMPLES_DIR / "vulnerable" / "BlowfishExample.java").read_text()
+    findings = _scan(content)
+
+    assert len(findings) == 1
+    assert findings[0].rule_id == "WEAK_CIPHER"
+    assert findings[0].severity == "MEDIUM"
 
 
 def test_no_findings_for_gcm_sample():

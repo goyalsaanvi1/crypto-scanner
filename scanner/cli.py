@@ -7,6 +7,7 @@ from scanner.detectors.hardcoded_keys import HardcodedKeyDetector
 from scanner.detectors.insecure_random import InsecureRandomDetector
 from scanner.detectors.static_iv import StaticIvDetector
 from scanner.detectors.weak_cipher import WeakCipherDetector
+from scanner.detectors.weak_hash import WeakHashDetector
 from scanner.report import print_findings
 
 DETECTORS = [
@@ -15,6 +16,7 @@ DETECTORS = [
     StaticIvDetector(),
     WeakCipherDetector(),
     InsecureRandomDetector(),
+    WeakHashDetector(),
 ]
 
 
