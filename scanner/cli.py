@@ -5,9 +5,12 @@ import click
 from scanner.detectors.ecb_mode import EcbModeDetector
 from scanner.detectors.hardcoded_keys import HardcodedKeyDetector
 from scanner.detectors.insecure_random import InsecureRandomDetector
+from scanner.detectors.insecure_trust_manager import InsecureTrustManagerDetector
 from scanner.detectors.static_iv import StaticIvDetector
 from scanner.detectors.weak_cipher import WeakCipherDetector
 from scanner.detectors.weak_hash import WeakHashDetector
+from scanner.detectors.weak_kdf import WeakKdfDetector
+from scanner.detectors.weak_key_size import WeakKeySizeDetector
 from scanner.report import print_findings
 
 DETECTORS = [
@@ -17,6 +20,9 @@ DETECTORS = [
     WeakCipherDetector(),
     InsecureRandomDetector(),
     WeakHashDetector(),
+    WeakKeySizeDetector(),
+    InsecureTrustManagerDetector(),
+    WeakKdfDetector(),
 ]
 
 

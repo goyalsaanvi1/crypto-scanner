@@ -49,3 +49,14 @@ def test_non_matching_field_name_is_not_flagged():
     findings = _scan(NON_MATCHING_FIELD_NAME)
 
     assert findings == []
+
+
+def test_flags_multi_line_field_declaration():
+    content = (SAMPLES_DIR / "edge_cases" / "MultiLineKey.java").read_text()
+    findings = _scan(content)
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.rule_id == "HARDCODED_KEY"
+    assert finding.severity == "HIGH"
+    assert finding.line_number == 3

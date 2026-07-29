@@ -56,6 +56,24 @@ not modifying existing detection logic.
 | `WEAK_CIPHER`      | `Cipher.getInstance(...)` using a weak/deprecated algorithm — DES, DESede, or RC4 (HIGH), or Blowfish (MEDIUM) |
 | `WEAK_HASH`        | `MessageDigest.getInstance(...)` using MD5/SHA-1 — HIGH if nearby naming suggests password/credential use, LOW otherwise (e.g. checksums) |
 | `INSECURE_RANDOM`  | `java.util.Random` used for security-sensitive purposes — suggestive naming, or its `nextBytes`/`nextInt`/`nextLong` output feeding a key/IV/nonce/token/salt — instead of `SecureRandom` |
+| `WEAK_KEY_SIZE`    | `KeyPairGenerator.initialize(...)`/`KeyGenerator.init(...)` with a literal key size below RSA 2048 / EC 224 / AES 128 |
+| `INSECURE_TRUST_MANAGER` | An `X509TrustManager` with an empty `checkClientTrusted`/`checkServerTrusted`, or a `HostnameVerifier` whose `verify(...)` unconditionally returns `true` |
+| `WEAK_KDF`         | `PBEKeySpec(...)` with a literal iteration count below 10,000 and/or a hardcoded byte-array salt literal |
+
+## Known Limitations
+
+Detectors use regex-based text matching over a single file at a time,
+not a full Java AST parser or cross-file dataflow analysis. That's a
+deliberate scope decision, not an oversight — catching the cases below
+properly would require a real parser or dataflow tracking, which is a
+meaningfully larger project than a regex-based scanner. As a result,
+detectors can miss:
+
+- Secrets built via string concatenation instead of a single string
+  literal (e.g. `"abc" + "def"`)
+- Cipher algorithm strings, key sizes, or iteration counts passed as a
+  variable rather than an inline literal — there's no dataflow/variable
+  tracking across lines
 
 ## Running tests
 

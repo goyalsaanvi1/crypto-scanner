@@ -5,14 +5,18 @@ from scanner.detectors.base import Detector, Finding
 _SECRET_KEYWORDS = ("KEY", "SECRET", "PASSWORD", "TOKEN")
 
 # Matches a String/byte[] field declaration assigned directly to a literal,
-# e.g. `private static final String SECRET_KEY = "abc123";`
+# e.g. `private static final String SECRET_KEY = "abc123";`. Anchored to a
+# statement/block boundary (start of line, `;`, `{`, or `}`) rather than
+# requiring the whole declaration on one line, so modifiers/type and the
+# name/value can be split across multiple lines.
 _FIELD_ASSIGNMENT_RE = re.compile(
-    r"^\s*"
+    r"(?:^|[;{}])\s*"
     r"(?:(?:public|private|protected|static|final|transient|volatile)\s+)*"
     r"(?:String|byte\s*\[\s*\])\s+"
     r"(\w+)\s*=\s*"
     r'("(?:[^"\\]|\\.)*"|\{[^}]*\})'
-    r"\s*;"
+    r"\s*;",
+    re.MULTILINE,
 )
 
 
@@ -23,15 +27,12 @@ class HardcodedKeyDetector(Detector):
 
     def scan(self, file_content: str) -> list[Finding]:
         findings = []
-        for line_number, line in enumerate(file_content.splitlines(), start=1):
-            match = _FIELD_ASSIGNMENT_RE.match(line)
-            if not match:
-                continue
-
+        for match in _FIELD_ASSIGNMENT_RE.finditer(file_content):
             field_name = match.group(1)
             if not any(keyword in field_name.upper() for keyword in _SECRET_KEYWORDS):
                 continue
 
+            line_number = file_content.count("\n", 0, match.start(1)) + 1
             findings.append(
                 Finding(
                     line_number=line_number,
