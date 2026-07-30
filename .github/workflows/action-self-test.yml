@@ -1,0 +1,30 @@
+name: Action Self-Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run crypto-scanner action against known-vulnerable samples
+        id: scan
+        uses: ./
+        with:
+          path: samples/vulnerable/
+          format: text
+          fail-on-findings: "false"
+
+      - name: Verify the action actually found something
+        shell: bash
+        run: |
+          echo "findings-count: ${{ steps.scan.outputs.findings-count }}"
+          if [ "${{ steps.scan.outputs.findings-count }}" -le 0 ]; then
+            echo "::error::Expected findings-count > 0 when scanning samples/vulnerable/, but got ${{ steps.scan.outputs.findings-count }}."
+            exit 1
+          fi

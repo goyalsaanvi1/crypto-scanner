@@ -140,6 +140,28 @@ directive for a different rule (e.g. `ignore ECB_MODE` next to a
 `HARDCODED_KEY` finding) has no effect. Suppressed findings are filtered
 out entirely: not printed, and not counted toward the exit code.
 
+## Using this as a GitHub Action
+
+This repo also ships as a reusable composite action, so other repos can
+run it in their own CI without installing anything manually:
+
+```yaml
+- uses: goyalsaanvi1/crypto-scanner@main
+  with:
+    path: src/
+    format: sarif
+```
+
+Inputs:
+
+| Input              | Required | Default | Description                                    |
+|--------------------|----------|---------|-------------------------------------------------|
+| `path`             | yes      | —       | Directory or file to scan                       |
+| `format`           | no       | `text`  | `text` or `sarif`                                |
+| `fail-on-findings` | no       | `true`  | Fail the step if findings are present            |
+
+Output: `findings-count` — total number of findings from the run.
+
 ## Known Limitations
 
 Detectors use regex-based text matching over a single file at a time,
