@@ -1,0 +1,22 @@
+[project]
+name = "crypto-scanner"
+version = "0.1.0"
+description = "Python CLI that scans Java source files for cryptographic misuse patterns, such as hardcoded keys and use of insecure cipher modes."
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.1",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.1"]
+
+[project.scripts]
+crypto-scanner = "scanner.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["scanner*"]

@@ -5,6 +5,8 @@ such as hardcoded keys and use of insecure cipher modes.
 
 ## Setup
 
+For development (editable checkout, no console entry point):
+
 ```bash
 git clone <repo-url>
 cd crypto-scanner
@@ -13,22 +15,33 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Or install it as a package, which gives you the `crypto-scanner` command:
+
+```bash
+git clone <repo-url>
+cd crypto-scanner
+pip install .
+```
+
 ## Usage
 
 ```bash
-python -m scanner.cli <path>
+crypto-scanner <path>
 ```
+
+(equivalent to `python -m scanner.cli <path>`, which still works too —
+useful if you installed via `requirements.txt` rather than `pip install .`)
 
 `<path>` can be a single `.java` file:
 
 ```bash
-python -m scanner.cli samples/vulnerable/EcbExample.java
+crypto-scanner samples/vulnerable/EcbExample.java
 ```
 
 or a directory, which is walked recursively for `.java` files:
 
 ```bash
-python -m scanner.cli samples/
+crypto-scanner samples/
 ```
 
 Each finding is printed as:
@@ -41,7 +54,7 @@ By default, files with no findings are silent. Pass `--verbose` to print
 `<file>: No findings` for those too:
 
 ```bash
-python -m scanner.cli --verbose samples/safe/
+crypto-scanner --verbose samples/safe/
 ```
 
 The CLI exits with code `0` if no findings were produced across all
@@ -52,7 +65,7 @@ Pass `--format sarif` to emit a SARIF 2.1.0 JSON document instead of text
 — e.g. for GitHub code scanning ingestion:
 
 ```bash
-python -m scanner.cli --format sarif samples/ > results.sarif
+crypto-scanner --format sarif samples/ > results.sarif
 ```
 
 ## Architecture
