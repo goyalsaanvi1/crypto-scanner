@@ -3,15 +3,38 @@
 ![Tests](https://github.com/goyalsaanvi1/crypto-scanner/actions/workflows/tests.yml/badge.svg)
 ![codecov](https://codecov.io/gh/goyalsaanvi1/crypto-scanner/branch/main/graph/badge.svg)
 
-Python CLI that scans Java source files for cryptographic misuse patterns,
-such as hardcoded keys and use of insecure cipher modes.
+## Why This Project
+
+Cryptographic misuse — hardcoded keys, ECB mode, disabled TLS validation,
+and similar mistakes — is common in real Java codebases and easy to miss
+in code review. crypto-scanner is a static-analysis CLI that scans Java
+source for 9 categories of these misuse patterns using regex-based text
+matching (no full AST parser). It's built as a portfolio project to
+demonstrate that approach end-to-end: a detector architecture designed
+for extension, SARIF 2.1.0 output for CI and security-tooling
+integration, and a reusable GitHub Action wrapping it all for use in
+other repos' pipelines.
+
+## Detected Patterns
+
+| Rule                     | Description                                                                                            |
+|---------------------------|---------------------------------------------------------------------------------------------------------|
+| `HARDCODED_KEY`           | A `String`/`byte[]` field named like a secret (KEY, SECRET, PASSWORD, TOKEN) assigned directly to a literal |
+| `ECB_MODE`                | `Cipher.getInstance(...)` called with a transformation string containing ECB |
+| `STATIC_IV`               | A hardcoded IV/nonce byte array literal passed into a `GCMParameterSpec`/`IvParameterSpec` |
+| `WEAK_CIPHER`             | `Cipher.getInstance(...)` using a weak/deprecated algorithm — DES, DESede, or RC4 (HIGH), or Blowfish (MEDIUM) |
+| `WEAK_HASH`               | `MessageDigest.getInstance(...)` using MD5/SHA-1 — HIGH if nearby naming suggests password/credential use, LOW otherwise (e.g. checksums) |
+| `INSECURE_RANDOM`         | `java.util.Random` used for security-sensitive purposes — suggestive naming, or its `nextBytes`/`nextInt`/`nextLong` output feeding a key/IV/nonce/token/salt — instead of `SecureRandom` |
+| `WEAK_KEY_SIZE`           | `KeyPairGenerator.initialize(...)`/`KeyGenerator.init(...)` with a literal key size below RSA 2048 / EC 224 / AES 128 |
+| `INSECURE_TRUST_MANAGER`  | An `X509TrustManager` with an empty `checkClientTrusted`/`checkServerTrusted`, or a `HostnameVerifier` whose `verify(...)` unconditionally returns `true` |
+| `WEAK_KDF`                | `PBEKeySpec(...)` with a literal iteration count below 10,000 and/or a hardcoded byte-array salt literal |
 
 ## Setup
 
 For development (editable checkout, no console entry point):
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/goyalsaanvi1/crypto-scanner.git
 cd crypto-scanner
 python -m venv venv
 source venv/bin/activate
@@ -21,7 +44,7 @@ pip install -r requirements.txt
 Or install it as a package, which gives you the `crypto-scanner` command:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/goyalsaanvi1/crypto-scanner.git
 cd crypto-scanner
 pip install .
 ```
@@ -61,8 +84,9 @@ crypto-scanner --verbose samples/safe/
 ```
 
 The CLI exits with code `0` if no findings were produced across all
-scanned files, or `1` if any were found — useful for wiring into CI as a
-pass/fail gate.
+scanned files, `1` if any were found, or `2` if `.cryptoscanner.yml` is
+malformed (see [Configuration](#configuration)) — useful for wiring into
+CI as a pass/fail gate.
 
 Pass `--format sarif` to emit a SARIF 2.1.0 JSON document instead of text
 — e.g. for GitHub code scanning ingestion:
@@ -70,29 +94,6 @@ Pass `--format sarif` to emit a SARIF 2.1.0 JSON document instead of text
 ```bash
 crypto-scanner --format sarif samples/ > results.sarif
 ```
-
-## Architecture
-
-Each vulnerability check is its own `Detector` subclass in
-`scanner/detectors/`, implementing `scan(file_content: str) -> list[Finding]`.
-The CLI runs every registered detector against each file and merges their
-findings. Detectors don't share state or call into each other, so adding a
-new check means adding a new file and registering it in `scanner/cli.py`,
-not modifying existing detection logic.
-
-## Detected patterns
-
-| Rule               | Description                                                            |
-|--------------------|-------------------------------------------------------------------------|
-| `HARDCODED_KEY`    | A `String`/`byte[]` field named like a secret (KEY, SECRET, PASSWORD, TOKEN) assigned directly to a literal |
-| `ECB_MODE`         | `Cipher.getInstance(...)` called with a transformation string containing ECB |
-| `STATIC_IV`        | A hardcoded IV/nonce byte array literal passed into a `GCMParameterSpec`/`IvParameterSpec` |
-| `WEAK_CIPHER`      | `Cipher.getInstance(...)` using a weak/deprecated algorithm — DES, DESede, or RC4 (HIGH), or Blowfish (MEDIUM) |
-| `WEAK_HASH`        | `MessageDigest.getInstance(...)` using MD5/SHA-1 — HIGH if nearby naming suggests password/credential use, LOW otherwise (e.g. checksums) |
-| `INSECURE_RANDOM`  | `java.util.Random` used for security-sensitive purposes — suggestive naming, or its `nextBytes`/`nextInt`/`nextLong` output feeding a key/IV/nonce/token/salt — instead of `SecureRandom` |
-| `WEAK_KEY_SIZE`    | `KeyPairGenerator.initialize(...)`/`KeyGenerator.init(...)` with a literal key size below RSA 2048 / EC 224 / AES 128 |
-| `INSECURE_TRUST_MANAGER` | An `X509TrustManager` with an empty `checkClientTrusted`/`checkServerTrusted`, or a `HostnameVerifier` whose `verify(...)` unconditionally returns `true` |
-| `WEAK_KDF`         | `PBEKeySpec(...)` with a literal iteration count below 10,000 and/or a hardcoded byte-array salt literal |
 
 ## Configuration
 
@@ -117,9 +118,10 @@ Any rule not listed uses its default (enabled, default severity).
 `severity_override` replaces the severity on every finding that rule
 produces (e.g. forcing `WEAK_HASH` to always report `HIGH`, regardless of
 its usual LOW/HIGH heuristic). An unknown `rule_id` or malformed YAML
-raises a clear error rather than failing silently.
+raises a clear error (and exits with code `2`) rather than failing
+silently.
 
-## Suppressing findings inline
+## Suppressing Findings Inline
 
 A specific finding can be suppressed with a `// cryptoscanner: ignore
 RULE_ID` comment, placed either on the same line as the flagged code or
@@ -140,7 +142,7 @@ directive for a different rule (e.g. `ignore ECB_MODE` next to a
 `HARDCODED_KEY` finding) has no effect. Suppressed findings are filtered
 out entirely: not printed, and not counted toward the exit code.
 
-## Using this as a GitHub Action
+## Using This as a GitHub Action
 
 This repo also ships as a reusable composite action, so other repos can
 run it in their own CI without installing anything manually:
@@ -154,13 +156,24 @@ run it in their own CI without installing anything manually:
 
 Inputs:
 
-| Input              | Required | Default | Description                                    |
-|--------------------|----------|---------|-------------------------------------------------|
-| `path`             | yes      | —       | Directory or file to scan                       |
-| `format`           | no       | `text`  | `text` or `sarif`                                |
-| `fail-on-findings` | no       | `true`  | Fail the step if findings are present            |
+| Input              | Required | Default | Description                                |
+|--------------------|----------|---------|----------------------------------------------|
+| `path`             | yes      | —       | Directory or file to scan                     |
+| `format`           | no       | `text`  | `text` or `sarif`                             |
+| `fail-on-findings` | no       | `true`  | Fail the step if findings are present         |
 
 Output: `findings-count` — total number of findings from the run.
+
+## Architecture
+
+Each vulnerability check is its own `Detector` subclass in
+`scanner/detectors/`, implementing `scan(file_content: str) -> list[Finding]`.
+The CLI runs every registered detector against each file, applies any
+`.cryptoscanner.yml` enable/disable and severity-override rules, filters
+out inline-suppressed findings, and merges the rest. Detectors don't
+share state or call into each other, so adding a new check means adding
+a new file and registering it in `scanner/cli.py`, not modifying
+existing detection logic.
 
 ## Known Limitations
 
@@ -177,8 +190,18 @@ detectors can miss:
   variable rather than an inline literal — there's no dataflow/variable
   tracking across lines
 
-## Running tests
+These gaps are covered by regression tests in `tests/test_edge_cases.py`
+against fixtures in `samples/edge_cases/`, confirming they behave as
+documented rather than silently.
+
+## Running Tests
 
 ```bash
 pytest -v
+```
+
+With coverage (what CI runs):
+
+```bash
+pytest -v --cov=scanner --cov-report=term-missing
 ```
