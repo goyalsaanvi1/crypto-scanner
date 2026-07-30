@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=9.1"]
+dev = ["pytest>=9.1", "pytest-cov>=7.1"]
 
 [project.scripts]
 crypto-scanner = "scanner.cli:main"
