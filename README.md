@@ -1,5 +1,7 @@
 # crypto-scanner
 
+![Tests](https://github.com/goyalsaanvi1/crypto-scanner/actions/workflows/tests.yml/badge.svg)
+
 Python CLI that scans Java source files for cryptographic misuse patterns,
 such as hardcoded keys and use of insecure cipher modes.
 
