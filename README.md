@@ -96,6 +96,27 @@ produces (e.g. forcing `WEAK_HASH` to always report `HIGH`, regardless of
 its usual LOW/HIGH heuristic). An unknown `rule_id` or malformed YAML
 raises a clear error rather than failing silently.
 
+## Suppressing findings inline
+
+A specific finding can be suppressed with a `// cryptoscanner: ignore
+RULE_ID` comment, placed either on the same line as the flagged code or
+on the line directly above it:
+
+```java
+private static final String KEY = "abc123"; // cryptoscanner: ignore HARDCODED_KEY
+```
+
+```java
+// cryptoscanner: ignore HARDCODED_KEY
+private static final String KEY = "abc123";
+```
+
+A bare `// cryptoscanner: ignore` (no rule ID) suppresses every finding
+on that line. The rule ID must match the finding being suppressed — a
+directive for a different rule (e.g. `ignore ECB_MODE` next to a
+`HARDCODED_KEY` finding) has no effect. Suppressed findings are filtered
+out entirely: not printed, and not counted toward the exit code.
+
 ## Known Limitations
 
 Detectors use regex-based text matching over a single file at a time,

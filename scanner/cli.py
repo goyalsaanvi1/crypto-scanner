@@ -14,6 +14,7 @@ from scanner.detectors.weak_hash import WeakHashDetector
 from scanner.detectors.weak_kdf import WeakKdfDetector
 from scanner.detectors.weak_key_size import WeakKeySizeDetector
 from scanner.report import print_findings, print_sarif
+from scanner.suppression import filter_suppressed_findings
 
 # (rule_id, detector) pairs. Order matches the rule catalog in report.py.
 DETECTORS = [
@@ -80,6 +81,8 @@ def main(path: Path, verbose: bool, output_format: str) -> None:
                     finding.severity = override
 
             findings.extend(detector_findings)
+
+        findings = filter_suppressed_findings(content, findings)
         if findings:
             any_findings = True
 
