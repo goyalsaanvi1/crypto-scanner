@@ -71,6 +71,31 @@ not modifying existing detection logic.
 | `INSECURE_TRUST_MANAGER` | An `X509TrustManager` with an empty `checkClientTrusted`/`checkServerTrusted`, or a `HostnameVerifier` whose `verify(...)` unconditionally returns `true` |
 | `WEAK_KDF`         | `PBEKeySpec(...)` with a literal iteration count below 10,000 and/or a hardcoded byte-array salt literal |
 
+## Configuration
+
+The CLI looks for a `.cryptoscanner.yml` file in the current working
+directory. If it's absent, all rules run at their default severity
+(current behavior). If present, it can disable specific rules or force a
+rule's findings to report a different severity:
+
+```yaml
+rules:
+  HARDCODED_KEY:
+    enabled: true
+  WEAK_HASH:
+    enabled: true
+    severity_override: HIGH
+  ECB_MODE:
+    enabled: false
+```
+
+Any rule not listed uses its default (enabled, default severity).
+`enabled: false` skips that detector entirely for the run.
+`severity_override` replaces the severity on every finding that rule
+produces (e.g. forcing `WEAK_HASH` to always report `HIGH`, regardless of
+its usual LOW/HIGH heuristic). An unknown `rule_id` or malformed YAML
+raises a clear error rather than failing silently.
+
 ## Known Limitations
 
 Detectors use regex-based text matching over a single file at a time,

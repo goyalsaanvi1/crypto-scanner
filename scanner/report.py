@@ -24,6 +24,8 @@ _RULE_DESCRIPTIONS = [
     ("WEAK_KDF", "PBEKeySpec with a low iteration count and/or a hardcoded salt"),
 ]
 
+RULE_IDS = tuple(rule_id for rule_id, _ in _RULE_DESCRIPTIONS)
+
 _TOOL_NAME = "crypto-scanner"
 _TOOL_INFORMATION_URI = "https://github.com/goyalsaanvi1/crypto-scanner"
 _SARIF_SCHEMA = (

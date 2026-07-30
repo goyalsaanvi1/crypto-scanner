@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from scanner.config import ConfigError, load_config
 from scanner.detectors.ecb_mode import EcbModeDetector
 from scanner.detectors.hardcoded_keys import HardcodedKeyDetector
 from scanner.detectors.insecure_random import InsecureRandomDetector
@@ -14,16 +15,17 @@ from scanner.detectors.weak_kdf import WeakKdfDetector
 from scanner.detectors.weak_key_size import WeakKeySizeDetector
 from scanner.report import print_findings, print_sarif
 
+# (rule_id, detector) pairs. Order matches the rule catalog in report.py.
 DETECTORS = [
-    HardcodedKeyDetector(),
-    EcbModeDetector(),
-    StaticIvDetector(),
-    WeakCipherDetector(),
-    InsecureRandomDetector(),
-    WeakHashDetector(),
-    WeakKeySizeDetector(),
-    InsecureTrustManagerDetector(),
-    WeakKdfDetector(),
+    ("HARDCODED_KEY", HardcodedKeyDetector()),
+    ("ECB_MODE", EcbModeDetector()),
+    ("STATIC_IV", StaticIvDetector()),
+    ("WEAK_CIPHER", WeakCipherDetector()),
+    ("WEAK_HASH", WeakHashDetector()),
+    ("INSECURE_RANDOM", InsecureRandomDetector()),
+    ("WEAK_KEY_SIZE", WeakKeySizeDetector()),
+    ("INSECURE_TRUST_MANAGER", InsecureTrustManagerDetector()),
+    ("WEAK_KDF", WeakKdfDetector()),
 ]
 
 
@@ -51,15 +53,33 @@ def find_java_files(target: Path) -> list[Path]:
 def main(path: Path, verbose: bool, output_format: str) -> None:
     """Scan .java files under PATH for cryptographic misuse patterns.
 
+    Looks for a .cryptoscanner.yml config file in the current working
+    directory to enable/disable rules or override their severity.
+
     Exits 0 if no findings were produced, 1 if any findings were found.
     """
+    try:
+        config = load_config(Path.cwd())
+    except ConfigError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        sys.exit(2)
+
     any_findings = False
     file_findings = []
     for java_file in find_java_files(path):
         content = java_file.read_text()
         findings = []
-        for detector in DETECTORS:
-            findings.extend(detector.scan(content))
+        for rule_id, detector in DETECTORS:
+            if not config.is_enabled(rule_id):
+                continue
+
+            detector_findings = detector.scan(content)
+            override = config.severity_override(rule_id)
+            if override:
+                for finding in detector_findings:
+                    finding.severity = override
+
+            findings.extend(detector_findings)
         if findings:
             any_findings = True
 
