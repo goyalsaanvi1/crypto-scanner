@@ -48,6 +48,13 @@ The CLI exits with code `0` if no findings were produced across all
 scanned files, or `1` if any were found — useful for wiring into CI as a
 pass/fail gate.
 
+Pass `--format sarif` to emit a SARIF 2.1.0 JSON document instead of text
+— e.g. for GitHub code scanning ingestion:
+
+```bash
+python -m scanner.cli --format sarif samples/ > results.sarif
+```
+
 ## Architecture
 
 Each vulnerability check is its own `Detector` subclass in
