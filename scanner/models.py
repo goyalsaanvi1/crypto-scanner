@@ -1,13 +1,19 @@
 import json
+import os
 from pathlib import Path
 
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
-DB_DIR = Path(__file__).resolve().parent.parent / "data"
-DB_DIR.mkdir(exist_ok=True)
-DB_PATH = DB_DIR / "scan_history.db"
+_env_db_path = os.environ.get("CRYPTO_SCANNER_DB_PATH")
+if _env_db_path:
+    DB_PATH = Path(_env_db_path)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+else:
+    DB_DIR = Path(__file__).resolve().parent.parent / "data"
+    DB_DIR.mkdir(exist_ok=True)
+    DB_PATH = DB_DIR / "scan_history.db"
 
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

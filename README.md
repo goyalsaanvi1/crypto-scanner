@@ -192,7 +192,9 @@ frontend calls the backend directly at `http://localhost:8000`.
 
 The UI includes a Rules panel — the same enable/disable and severity-override
 controls as `.cryptoscanner.yml`, but as checkboxes and dropdowns instead of
-a config file, sent with each scan request.
+a config file, sent with each scan request. The Rules panel can also export
+its current state as a `.cryptoscanner.yml` file, or import one — validated
+through the exact same parsing/error logic as the CLI's config loader.
 
 Results can be exported from the UI as JSON or SARIF (same SARIF format as
 `--format sarif` on the CLI) via the buttons above the findings list.
@@ -203,7 +205,28 @@ mirroring how the CLI scans a directory.
 
 Every scan is saved to a local SQLite database (`data/scan_history.db`,
 gitignored) and shown in the "Recent Scans" panel — click a past scan to
-reload its findings into the results panel.
+reload its findings into the results panel, delete individual entries with
+the `×` next to each row, or clear the whole history at once.
+
+Code and findings can be copied to the clipboard directly from the UI, and
+there's a light/dark theme toggle in the header (persisted across reloads).
+The code editor (CodeMirror, with Java syntax highlighting) themes itself
+to match.
+
+### Running the Web UI with Docker
+
+Instead of installing Python/Node locally, both services can run in
+containers:
+
+```bash
+docker compose up --build
+```
+
+This builds the FastAPI backend (`Dockerfile`) and the React frontend
+(`frontend/Dockerfile`, built with Vite and served by nginx), and starts
+both — backend on `http://localhost:8000`, frontend on
+`http://localhost:5173`. Scan history persists across container restarts
+via a `./data` volume mount.
 
 ## Architecture
 

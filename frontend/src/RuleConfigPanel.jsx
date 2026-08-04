@@ -1,12 +1,51 @@
-export default function RuleConfigPanel({ rules, ruleConfig, onToggleEnabled, onChangeSeverity }) {
+import { useRef } from 'react'
+
+export default function RuleConfigPanel({
+  rules,
+  ruleConfig,
+  onToggleEnabled,
+  onChangeSeverity,
+  onExportConfig,
+  onImportConfig,
+  importError,
+}) {
+  const fileInputRef = useRef(null)
+
   if (rules.length === 0) return null
+
+  function handleImportFileChange(event) {
+    const file = event.target.files?.[0]
+    if (file) onImportConfig(file)
+    event.target.value = ''
+  }
 
   return (
     <section className="panel rules-panel" aria-label="Rule configuration">
-      <h2 className="panel-heading">Rules</h2>
-      <p className="field-label rules-hint">
-        Enable/disable rules or force a severity, same as .cryptoscanner.yml.
-      </p>
+      <div className="rules-panel-heading">
+        <div>
+          <h2 className="panel-heading">Rules</h2>
+          <p className="field-label rules-hint">
+            Enable/disable rules or force a severity, same as .cryptoscanner.yml.
+          </p>
+        </div>
+        <div className="config-io-buttons">
+          <button type="button" className="clear-files-button" onClick={onExportConfig}>
+            Export .yml
+          </button>
+          <button type="button" className="clear-files-button" onClick={() => fileInputRef.current?.click()}>
+            Import .yml
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".yml,.yaml"
+            hidden
+            onChange={handleImportFileChange}
+          />
+        </div>
+      </div>
+
+      {importError && <p className="empty-state error-state config-import-error">{importError}</p>}
 
       <ul className="rules-list">
         {rules.map((rule) => {

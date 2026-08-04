@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -19,7 +20,7 @@ app = FastAPI(title="crypto-scanner API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -33,6 +34,10 @@ class ScanRequest(BaseModel):
     code: str | None = None
     files: list[FileInput] | None = None
     rules: dict | None = None
+
+
+class ConfigParseRequest(BaseModel):
+    yaml_text: str
 
 
 def _findings_payload(findings) -> list[dict]:
@@ -83,6 +88,26 @@ def list_samples() -> list[dict]:
 @app.get("/api/rules")
 def list_rules() -> list[dict]:
     return [{"rule_id": rule_id, "description": description} for rule_id, description in RULE_DESCRIPTIONS]
+
+
+@app.post("/api/config/parse")
+def parse_config_yaml(request: ConfigParseRequest) -> dict:
+    try:
+        raw = yaml.safe_load(request.yaml_text)
+    except yaml.YAMLError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid YAML: {exc}") from exc
+
+    try:
+        config = parse_config(raw)
+    except ConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "rules": {
+            rule_id: {"enabled": rule_cfg.enabled, "severity_override": rule_cfg.severity_override}
+            for rule_id, rule_cfg in config.rules.items()
+        }
+    }
 
 
 @app.post("/api/scan")
@@ -200,6 +225,31 @@ def get_history_record(record_id: int) -> dict:
             "findings_json": json.loads(record.findings_json),
             "summary_json": json.loads(record.summary_json),
         }
+    finally:
+        session.close()
+
+
+@app.delete("/api/history/{record_id}")
+def delete_history_record(record_id: int) -> dict:
+    session = SessionLocal()
+    try:
+        record = session.get(ScanRecord, record_id)
+        if record is None:
+            raise HTTPException(status_code=404, detail=f"No scan record with id {record_id}")
+        session.delete(record)
+        session.commit()
+        return {"deleted": record_id}
+    finally:
+        session.close()
+
+
+@app.delete("/api/history")
+def clear_history() -> dict:
+    session = SessionLocal()
+    try:
+        deleted = session.query(ScanRecord).delete()
+        session.commit()
+        return {"deleted": deleted}
     finally:
         session.close()
 

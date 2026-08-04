@@ -1,5 +1,11 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react'
+import CodeMirror from '@uiw/react-codemirror'
+import { java } from '@codemirror/lang-java'
 import ScanLineOverlay from './ScanLineOverlay'
+import CopyButton from './CopyButton'
+import { cmDarkTheme, cmLightTheme } from './codeMirrorTheme'
+
+const javaExtensions = [java()]
 
 const ScanForm = forwardRef(function ScanForm(
   {
@@ -15,10 +21,11 @@ const ScanForm = forwardRef(function ScanForm(
     onFilesSelected,
     onRemoveFile,
     onClearFiles,
+    theme,
   },
   ref,
 ) {
-  const textareaRef = useRef(null)
+  const editorViewRef = useRef(null)
   const fileInputRef = useRef(null)
   const batchMode = files.length > 0
 
@@ -30,22 +37,18 @@ const ScanForm = forwardRef(function ScanForm(
 
   useImperativeHandle(ref, () => ({
     jumpToLine(lineNumber) {
-      const textarea = textareaRef.current
-      if (!textarea) return
+      const view = editorViewRef.current
+      if (!view) return
 
-      const lines = textarea.value.split('\n')
-      const targetIndex = Math.min(Math.max(lineNumber - 1, 0), lines.length - 1)
-      const start = lines.slice(0, targetIndex).reduce((sum, line) => sum + line.length + 1, 0)
-      const end = start + lines[targetIndex].length
+      const doc = view.state.doc
+      const clampedLine = Math.min(Math.max(lineNumber, 1), doc.lines)
+      const line = doc.line(clampedLine)
 
-      textarea.focus()
-      textarea.setSelectionRange(start, end)
-
-      const approxLineHeight = textarea.scrollHeight / lines.length
-      textarea.scrollTop = Math.max(
-        0,
-        approxLineHeight * targetIndex - textarea.clientHeight / 2,
-      )
+      view.dispatch({
+        selection: { anchor: line.from, head: line.to },
+        scrollIntoView: true,
+      })
+      view.focus()
     },
   }))
 
@@ -106,15 +109,23 @@ const ScanForm = forwardRef(function ScanForm(
             ))}
           </ul>
         ) : (
-          <textarea
-            ref={textareaRef}
-            className="code-textarea"
+          <CodeMirror
             value={code}
-            onChange={(event) => onCodeChange(event.target.value)}
+            onChange={onCodeChange}
+            onCreateEditor={(view) => {
+              editorViewRef.current = view
+            }}
+            theme={theme === 'light' ? cmLightTheme : cmDarkTheme}
+            extensions={javaExtensions}
             placeholder="Paste Java source here..."
-            spellCheck={false}
+            height="320px"
+            className="code-editor"
+            basicSetup={{ autocompletion: false }}
             aria-label="Java source code"
           />
+        )}
+        {!batchMode && code && (
+          <CopyButton className="copy-code-button" getText={() => code} />
         )}
         {scanning && <ScanLineOverlay onComplete={onSweepComplete} />}
       </div>

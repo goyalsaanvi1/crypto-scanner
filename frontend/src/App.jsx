@@ -6,6 +6,12 @@ import RecentScans from './RecentScans'
 import './App.css'
 
 const API_BASE = 'http://localhost:8000'
+const THEME_STORAGE_KEY = 'crypto-scanner-theme'
+
+function getInitialTheme() {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY)
+  return stored === 'light' || stored === 'dark' ? stored : 'dark'
+}
 
 function defaultRuleConfig(rules) {
   const config = {}
@@ -30,9 +36,20 @@ function App() {
   const [error, setError] = useState(null)
   const [history, setHistory] = useState([])
   const [selectedHistoryId, setSelectedHistoryId] = useState(null)
+  const [theme, setTheme] = useState(getInitialTheme)
+  const [configImportError, setConfigImportError] = useState(null)
 
   const sweepResolveRef = useRef(null)
   const scanFormRef = useRef(null)
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem(THEME_STORAGE_KEY, theme)
+  }, [theme])
+
+  function handleToggleTheme() {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
 
   useEffect(() => {
     fetch(`${API_BASE}/api/samples`)
@@ -75,6 +92,30 @@ function App() {
     setError(null)
     setStatus('done')
     setSelectedHistoryId(id)
+  }
+
+  async function handleDeleteHistory(id) {
+    const res = await fetch(`${API_BASE}/api/history/${id}`, { method: 'DELETE' })
+    if (!res.ok) return
+
+    setHistory((prev) => prev.filter((item) => item.id !== id))
+    if (selectedHistoryId === id) {
+      setSelectedHistoryId(null)
+      setStatus('idle')
+      setFindings([])
+    }
+  }
+
+  async function handleClearAllHistory() {
+    const res = await fetch(`${API_BASE}/api/history`, { method: 'DELETE' })
+    if (!res.ok) return
+
+    setHistory([])
+    if (resultMode === 'history') {
+      setSelectedHistoryId(null)
+      setStatus('idle')
+      setFindings([])
+    }
   }
 
   function handleSelectSample(path) {
@@ -130,6 +171,61 @@ function App() {
       ...prev,
       [ruleId]: { ...prev[ruleId], severityOverride },
     }))
+  }
+
+  function handleExportConfig() {
+    const lines = ['rules:']
+    let hasEntries = false
+
+    for (const rule of rules) {
+      const cfg = ruleConfig[rule.rule_id] ?? { enabled: true, severityOverride: '' }
+      if (cfg.enabled && !cfg.severityOverride) continue
+
+      hasEntries = true
+      lines.push(`  ${rule.rule_id}:`)
+      lines.push(`    enabled: ${cfg.enabled}`)
+      if (cfg.severityOverride) {
+        lines.push(`    severity_override: ${cfg.severityOverride}`)
+      }
+    }
+
+    const yamlText = hasEntries ? `${lines.join('\n')}\n` : 'rules: {}\n'
+
+    const blob = new Blob([yamlText], { type: 'text/yaml' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '.cryptoscanner.yml'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImportConfig(file) {
+    setConfigImportError(null)
+    const yamlText = await file.text()
+
+    const res = await fetch(`${API_BASE}/api/config/parse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ yaml_text: yamlText }),
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      setConfigImportError(data.detail || 'Could not parse that config file.')
+      return
+    }
+
+    setRuleConfig((prev) => {
+      const next = { ...prev }
+      for (const ruleId of Object.keys(next)) {
+        const imported = data.rules[ruleId]
+        next[ruleId] = imported
+          ? { enabled: imported.enabled, severityOverride: imported.severity_override || '' }
+          : { enabled: true, severityOverride: '' }
+      }
+      return next
+    })
   }
 
   function handleSweepComplete() {
@@ -224,7 +320,18 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="app-name">crypto-scanner</div>
+        <div className="app-header-row">
+          <div className="app-name">crypto-scanner</div>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={handleToggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+          >
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
+        </div>
         <p className="app-tagline">
           Static analysis for Java cryptographic misuse — paste source or pick a sample.
         </p>
@@ -245,6 +352,7 @@ function App() {
           onFilesSelected={handleFilesSelected}
           onRemoveFile={handleRemoveFile}
           onClearFiles={handleClearFiles}
+          theme={theme}
         />
         <ResultsPanel
           status={status}
@@ -263,9 +371,18 @@ function App() {
         ruleConfig={ruleConfig}
         onToggleEnabled={handleToggleRuleEnabled}
         onChangeSeverity={handleChangeRuleSeverity}
+        onExportConfig={handleExportConfig}
+        onImportConfig={handleImportConfig}
+        importError={configImportError}
       />
 
-      <RecentScans history={history} onSelect={handleSelectHistory} selectedId={selectedHistoryId} />
+      <RecentScans
+        history={history}
+        onSelect={handleSelectHistory}
+        selectedId={selectedHistoryId}
+        onDelete={handleDeleteHistory}
+        onClearAll={handleClearAllHistory}
+      />
     </div>
   )
 }

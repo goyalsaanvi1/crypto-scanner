@@ -1,17 +1,41 @@
-:root {
+:root,
+:root[data-theme='dark'] {
   --bg: #14181f;
   --panel: #1c222c;
   --border: #2e3642;
   --text: #e8eaed;
   --text-muted: #8a94a6;
   --accent: #e8a33d;
+  --accent-ink: #14181f;
+  --accent-glow: rgba(232, 163, 61, 0.65);
+  --accent-tint: rgba(232, 163, 61, 0.08);
+  --hover-tint: rgba(232, 234, 237, 0.04);
   --medium: #5b8dbe;
   --low: #6b7280;
 
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --border: #d8dce3;
+  --text: #1a1e27;
+  --text-muted: #5c6577;
+  --accent: #b5721e;
+  --accent-ink: #ffffff;
+  --accent-glow: rgba(181, 114, 30, 0.45);
+  --accent-tint: rgba(181, 114, 30, 0.1);
+  --hover-tint: rgba(20, 24, 31, 0.045);
+  --medium: #2f5d82;
+  --low: #667080;
+
+  color-scheme: light;
+}
+
+:root {
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-
-  color-scheme: dark;
 }
 
 * {

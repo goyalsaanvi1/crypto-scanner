@@ -1,5 +1,25 @@
+import CopyButton from './CopyButton'
+
 const SEVERITY_ORDER = ['HIGH', 'MEDIUM', 'LOW']
 const SEVERITY_LABEL = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' }
+
+function buildFindingsText(resultMode, findings, fileResults) {
+  const lines = []
+  if (resultMode === 'batch') {
+    for (const file of fileResults) {
+      for (const finding of file.findings) {
+        lines.push(
+          `${file.name}:${finding.line_number} [${finding.rule_id}] ${finding.severity} - ${finding.message}`,
+        )
+      }
+    }
+  } else {
+    for (const finding of findings) {
+      lines.push(`line ${finding.line_number} [${finding.rule_id}] ${finding.severity} - ${finding.message}`)
+    }
+  }
+  return lines.join('\n')
+}
 
 function FindingRow({ finding, clickable, onClick }) {
   return (
@@ -58,16 +78,24 @@ export default function ResultsPanel({
                 <span className="summary-label">{SEVERITY_LABEL[severity]}</span>
               </div>
             ))}
-            {!isHistoryView && (
-              <div className="export-buttons">
-                <button type="button" className="export-button" onClick={() => onExport?.('json')}>
-                  Export JSON
-                </button>
-                <button type="button" className="export-button" onClick={() => onExport?.('sarif')}>
-                  Export SARIF
-                </button>
-              </div>
-            )}
+            <div className="export-buttons">
+              <CopyButton
+                className="export-button"
+                label="Copy Findings"
+                copiedLabel="Copied"
+                getText={() => buildFindingsText(resultMode, findings, fileResults)}
+              />
+              {!isHistoryView && (
+                <>
+                  <button type="button" className="export-button" onClick={() => onExport?.('json')}>
+                    Export JSON
+                  </button>
+                  <button type="button" className="export-button" onClick={() => onExport?.('sarif')}>
+                    Export SARIF
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {resultMode === 'batch' ? (

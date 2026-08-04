@@ -18,17 +18,24 @@ function firstLine(snippet) {
   return line.trim()
 }
 
-export default function RecentScans({ history, onSelect, selectedId }) {
+export default function RecentScans({ history, onSelect, selectedId, onDelete, onClearAll }) {
   return (
     <section className="panel history-panel" aria-label="Recent scans">
-      <h2 className="panel-heading">Recent Scans</h2>
+      <div className="history-panel-heading">
+        <h2 className="panel-heading">Recent Scans</h2>
+        {history.length > 0 && (
+          <button type="button" className="clear-files-button" onClick={onClearAll}>
+            Clear all
+          </button>
+        )}
+      </div>
 
       {history.length === 0 ? (
         <p className="empty-state">No scans yet — run one to see it here.</p>
       ) : (
         <ul className="history-list">
           {history.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="history-item">
               <button
                 type="button"
                 className={`history-row${item.id === selectedId ? ' history-row-active' : ''}`}
@@ -47,6 +54,15 @@ export default function RecentScans({ history, onSelect, selectedId }) {
                     </span>
                   ))}
                 </span>
+              </button>
+              <button
+                type="button"
+                className="history-delete"
+                onClick={() => onDelete(item.id)}
+                aria-label={`Delete scan from ${formatTimestamp(item.created_at)}`}
+                title="Delete this scan"
+              >
+                ×
               </button>
             </li>
           ))}
