@@ -12,3 +12,7 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+.lsp/
+.clj-kondo/
+build/
+data/

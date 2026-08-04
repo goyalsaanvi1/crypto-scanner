@@ -10,9 +10,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=9.1", "pytest-cov>=7.1"]
+api = ["fastapi>=0.110", "uvicorn>=0.29", "SQLAlchemy>=2.0"]
 
 [project.scripts]
 crypto-scanner = "scanner.cli:main"
+crypto-scanner-api = "scanner.api:main"
 
 [build-system]
 requires = ["setuptools>=68"]

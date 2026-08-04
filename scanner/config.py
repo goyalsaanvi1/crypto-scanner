@@ -49,10 +49,10 @@ def load_config(directory: Path) -> ScannerConfig:
     except yaml.YAMLError as exc:
         raise ConfigError(f"{CONFIG_FILENAME} is not valid YAML: {exc}") from exc
 
-    return _parse_config(raw)
+    return parse_config(raw)
 
 
-def _parse_config(raw) -> ScannerConfig:
+def parse_config(raw) -> ScannerConfig:
     if raw is None:
         return ScannerConfig()
 

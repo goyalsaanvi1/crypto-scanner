@@ -12,7 +12,7 @@ _SEVERITY_TO_SARIF_LEVEL = {
 # Every rule_id currently in use, with a short human-readable description
 # of what it checks for. Order matches the detector registration order in
 # cli.py.
-_RULE_DESCRIPTIONS = [
+RULE_DESCRIPTIONS = [
     ("HARDCODED_KEY", "String/byte[] field named like a secret assigned directly to a literal value"),
     ("ECB_MODE", "Cipher.getInstance(...) using ECB mode"),
     ("STATIC_IV", "Hardcoded IV/nonce byte array literal used to build a cipher parameter spec"),
@@ -24,7 +24,7 @@ _RULE_DESCRIPTIONS = [
     ("WEAK_KDF", "PBEKeySpec with a low iteration count and/or a hardcoded salt"),
 ]
 
-RULE_IDS = tuple(rule_id for rule_id, _ in _RULE_DESCRIPTIONS)
+RULE_IDS = tuple(rule_id for rule_id, _ in RULE_DESCRIPTIONS)
 
 _TOOL_NAME = "crypto-scanner"
 _TOOL_INFORMATION_URI = "https://github.com/goyalsaanvi1/crypto-scanner"
@@ -50,7 +50,7 @@ def print_findings(file_path: Path, findings: list[Finding], verbose: bool = Fal
 def build_sarif_document(file_findings: list[tuple[Path, list[Finding]]]) -> dict:
     rules = [
         {"id": rule_id, "shortDescription": {"text": description}}
-        for rule_id, description in _RULE_DESCRIPTIONS
+        for rule_id, description in RULE_DESCRIPTIONS
     ]
 
     results = []

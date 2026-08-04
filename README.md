@@ -38,7 +38,7 @@ git clone https://github.com/goyalsaanvi1/crypto-scanner.git
 cd crypto-scanner
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 ```
 
 Or install it as a package, which gives you the `crypto-scanner` command:
@@ -55,8 +55,8 @@ pip install .
 crypto-scanner <path>
 ```
 
-(equivalent to `python -m scanner.cli <path>`, which still works too —
-useful if you installed via `requirements.txt` rather than `pip install .`)
+(equivalent to `python -m scanner.cli <path>`, which also works if you
+installed with `pip install -e .` instead of a non-editable `pip install .`)
 
 `<path>` can be a single `.java` file:
 
@@ -164,16 +164,59 @@ Inputs:
 
 Output: `findings-count` — total number of findings from the run.
 
+## Web UI
+
+There's also a local web UI — paste Java source or pick a sample, click
+Run Scan, see findings rendered visually — for anyone who'd rather not
+use a terminal. It's a FastAPI backend plus a React frontend, and it
+shares the exact same detection engine as the CLI (`scanner/engine.py`),
+just reached over an HTTP API instead of a direct import.
+
+Backend (port 8000):
+
+```bash
+pip install ".[api]"
+crypto-scanner-api
+```
+
+Frontend (port 5173), in a separate terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open `http://localhost:5173`. Both need to be running — the
+frontend calls the backend directly at `http://localhost:8000`.
+
+The UI includes a Rules panel — the same enable/disable and severity-override
+controls as `.cryptoscanner.yml`, but as checkboxes and dropdowns instead of
+a config file, sent with each scan request.
+
+Results can be exported from the UI as JSON or SARIF (same SARIF format as
+`--format sarif` on the CLI) via the buttons above the findings list.
+
+You can also upload multiple `.java` files instead of pasting a single
+snippet — results are grouped per file with an aggregate severity summary,
+mirroring how the CLI scans a directory.
+
+Every scan is saved to a local SQLite database (`data/scan_history.db`,
+gitignored) and shown in the "Recent Scans" panel — click a past scan to
+reload its findings into the results panel.
+
 ## Architecture
 
 Each vulnerability check is its own `Detector` subclass in
 `scanner/detectors/`, implementing `scan(file_content: str) -> list[Finding]`.
-The CLI runs every registered detector against each file, applies any
-`.cryptoscanner.yml` enable/disable and severity-override rules, filters
-out inline-suppressed findings, and merges the rest. Detectors don't
-share state or call into each other, so adding a new check means adding
-a new file and registering it in `scanner/cli.py`, not modifying
-existing detection logic.
+`scanner/engine.py` runs every registered detector against a file's
+content, applies any `.cryptoscanner.yml` enable/disable and
+severity-override rules, and filters out inline-suppressed findings —
+this is the single shared path used by both the CLI (`scanner/cli.py`)
+and the web UI's backend (`scanner/api.py`), so they can never drift out
+of sync. Detectors don't share state or call into each other, so adding
+a new check means adding a new file and registering it in
+`scanner/engine.py`, not modifying existing detection logic.
 
 ## Known Limitations
 
